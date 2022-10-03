@@ -1,0 +1,11 @@
+apiVersion: v2
+name: grafana
+description: Grafana chart for Sumer project
+type: application
+version: 0.1.68
+appVersion: "1.16.0"
+
+dependencies:
+  - name: grafana
+    repository: https://grafana.github.io/helm-charts
+    version: 6.38.3
