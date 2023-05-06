@@ -1,4 +1,12 @@
 grafana:
+    # THIS IS DISABLED BECAUSE IT SEEMS LIKE GRAFANA HAS NATIVE SUPPORT FOR
+    # VAULT - THESE MAY NOT BE NECESSARY
+  # podAnnotations:
+  #   vault.hashicorp.com/agent-inject: "true"
+  #   vault.hashicorp.com/agent-pre-populate-only: "true"
+  #   vault.hashicorp.com/tls-secret: vault-api-tls-client-ca
+  #   vault.hashicorp.com/agent-configmap: vault-grafana-postgres-storage
+
   ingress:
     enabled: true
     hosts:
@@ -24,12 +32,22 @@ grafana:
       root_url: http://localhost:9000
       serve_from_sub_path: false
       router_logging: true
+    security:
+      admin_user: "$__file{/vault/users/admin/username}"
+      admin_password: "$__file{/vault/users/admin/password}"
 
-  admin:
-    existingSecret: grafana-admin-credentials
+  # admin:
+  #   existingSecret: grafana-admin-credentials
   service:
     enabled: true
     type: <TF_POPULATED>
+  podAnnotations:
+    vault.hashicorp.com/agent-inject: "true"
+    vault.hashicorp.com/agent-pre-populate-only: "true"
+    vault.hashicorp.com/tls-secret: "vault-api-tls-client-ca" 
+    vault.hashicorp.com/agent-configmap: "vault-secrets-grafana" 
+    vault.hashicorp.com/secret-volume-path: /vault
+
   dashboardProviders:
     dashboardproviders.yaml:
       apiVersion: 1
@@ -98,6 +116,8 @@ grafana:
       mountPath: /var/lib/grafana/dashboards/mounted
       hostPath: /run/desktop/mnt/host/d/Dev/Volumes/nextjs-grpc/grafana/dashboards/mounted
       readOnly: false
+    - name: vault-datasources
+      mountPath: /vault
   extraSecretMounts:
     - name: grafana-server-cert
       secretName: grafana-server-cert
