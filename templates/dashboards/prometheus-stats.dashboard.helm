@@ -1,0 +1,10 @@
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDashboard
+metadata:
+  name: prometheus-stats
+spec:
+  instanceSelector:
+    matchLabels:
+      dashboards: {{ .Values.dashboardName | quote }} 
+  url: "https://grafana.com/api/dashboards/2/revisions/2/download"
+  

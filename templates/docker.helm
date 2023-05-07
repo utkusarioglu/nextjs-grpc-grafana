@@ -1,9 +1,0 @@
-kind: ConfigMap
-apiVersion: v1
-metadata:
-  name: docker
-  labels:
-    grafana_dashboard: "1"
-data: 
-  docker.json: |-
-{{ .Files.Get "files/dashboards/docker.json" | indent 4 }}

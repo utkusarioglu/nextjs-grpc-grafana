@@ -1,0 +1,58 @@
+apiVersion: grafana.integreatly.org/v1beta1
+kind: Grafana
+metadata:
+  name: grafana
+  labels:
+    dashboards: {{ .Values.dashboardName | quote }}
+spec:
+  config:
+    log:
+      mode: "console"
+    auth:
+      disable_login_form: "false"
+    security:
+      admin_user: root
+      admin_password: secret
+  deployment:
+    spec:
+      template:
+        metadata:
+          labels: 
+            cat: mouse
+          annotations: 
+            one: two
+        spec:
+          containers:
+            - name: grafana
+              # env:
+              #   - name: SOMETHING
+              #     value: someone
+              volumeMounts:
+                - name: grafana-server-cert
+                  mountPath: /etc/secrets/auth_generic_oauth
+                  readOnly: true
+          volumes: 
+            - name: grafana-server-cert
+              secret:
+                secretName: grafana-server-cert
+                optional: false
+                defaultMode: 0440
+  service:
+    spec:
+      type: {{ .Values.service.type | quote }}
+  ingress:
+    metadata:
+      annotations: 
+        {{- toYaml .Values.ingress.annotations | nindent 8}}
+    spec:
+      rules:
+        - host: {{ .Values.ingress.host | quote }}
+          http:
+            paths:
+              - backend:
+                  service:
+                    name: grafana-service
+                    port:
+                      number: {{ .Values.ingress.portNumber }}
+                path: /
+                pathType: Prefix
