@@ -1,106 +1,28 @@
-grafana:
-  ingress:
-    enabled: true
-    hosts:
-      - <TF_POPULATED>
+ingress: 
+  ingressClassName: <TF_POPULATED>
+  host: <TF_POPULATED>
+  portNumber: 3000
+  annotations: 
+    kubernetes.io/ingress.class: <TF_POPULATED>
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80},{"HTTPS":443}]'
+    alb.ingress.kubernetes.io/ssl-redirect: "443"
+    external-dns.alpha.kubernetes.io/alias: "true"
 
-    annotations:
-      kubernetes.io/ingress.class: <TF_POPULATED>
-      alb.ingress.kubernetes.io/scheme: internet-facing
-      alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80},{"HTTPS":443}]'
-      alb.ingress.kubernetes.io/ssl-redirect: "443"
-      external-dns.alpha.kubernetes.io/alias: "true"
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/group.name: nextjs-grpc
+    alb.ingress.kubernetes.io/load-balancer-name: nextjs-grpc
+    alb.ingress.kubernetes.io/security-groups: <TF_POPULATED>
+    external-dns.alpha.kubernetes.io/hostname: <TF_POPULATED>
 
-      alb.ingress.kubernetes.io/target-type: ip
-      alb.ingress.kubernetes.io/group.name: nextjs-grpc
-      alb.ingress.kubernetes.io/load-balancer-name: nextjs-grpc
-      alb.ingress.kubernetes.io/security-groups: <TF_POPULATED>
-      external-dns.alpha.kubernetes.io/hostname: <TF_POPULATED>
+service:
+  type: <TF_POPULATED>
 
-  grafana.ini:
-    log:
-      level: debug
-    server:
-      root_url: http://localhost:9000
-      serve_from_sub_path: false
-      router_logging: true
+podAnnotations:
+  vault.hashicorp.com/agent-inject: "true"
+  vault.hashicorp.com/agent-pre-populate-only: "true"
+  vault.hashicorp.com/tls-secret: "vault-api-tls-client-ca" 
+  vault.hashicorp.com/agent-configmap: "vault-secrets-grafana" 
+  vault.hashicorp.com/secret-volume-path: /vault
 
-  admin:
-    existingSecret: grafana-admin-credentials
-  service:
-    enabled: true
-    type: <TF_POPULATED>
-  dashboardProviders:
-    dashboardproviders.yaml:
-      apiVersion: 1
-      providers:
-        - name: default
-          orgId: 1
-          folder: ""
-          type: file
-          disableDeletion: false
-          editable: false
-          options:
-            path: /var/lib/grafana/dashboards/default
-    mountedDashboards.yaml:
-      apiVersion: 1
-      providers:
-        - name: mounted
-          orgId: 1
-          folder: ""
-          type: file
-          disableDeletion: false
-          allowUiUpdates: true
-          editable: true
-          options:
-            path: /var/lib/grafana/dashboards/mounted
-  datasources:
-    data-sources.yaml:
-      apiVersion: 1
-      datasources:
-        - name: prometheus
-          type: prometheus
-          url: http://prometheus-server.observability
-          access: proxy
-          editable: false
-        - name: Jaeger
-          type: jaeger
-          # uid: jaeger-spectra
-          access: proxy
-          url: http://jaeger-query.observability:16686
-          # basicAuth: true
-          # basicAuthUser: my_user
-          editable: false
-          isDefault: false
-          jsonData:
-            tracesToLogs:
-              datasourceUid: loki
-              tags:
-                - cluster
-                - hostname
-                - namespace
-                - pod
-        - name: loki
-          type: loki
-          url: http://loki.observability:3100
-  dashboards:
-    default:
-      kubernetes-cluster:
-        gnetId: 315
-        revision: 3
-        datasource: Prometheus
-      prometheus-stats:
-        gnetId: 2
-        revision: 2
-        datasource: prometheus
-  extraVolumeMounts:
-    - name: mounted-dashboards
-      mountPath: /var/lib/grafana/dashboards/mounted
-      hostPath: /run/desktop/mnt/host/d/Dev/Volumes/nextjs-grpc/grafana/dashboards/mounted
-      readOnly: false
-  extraSecretMounts:
-    - name: grafana-server-cert
-      secretName: grafana-server-cert
-      defaultMode: 0440
-      mountPath: /etc/secrets/auth_generic_oauth
-      readOnly: true
+dashboardName: grafana
