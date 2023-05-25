@@ -11,8 +11,10 @@ spec:
     auth:
       disable_login_form: "false"
     security:
-      admin_user: root
-      admin_password: secret
+      # TODO these should be set by vault
+      admin_user: admin
+      admin_password: admin
+
   deployment:
     spec:
       template:
@@ -24,9 +26,6 @@ spec:
         spec:
           containers:
             - name: grafana
-              # env:
-              #   - name: SOMETHING
-              #     value: someone
               volumeMounts:
                 - name: grafana-server-cert
                   mountPath: /etc/secrets/auth_generic_oauth
