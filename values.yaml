@@ -1,28 +1,147 @@
-ingress: 
-  ingressClassName: <TF_POPULATED>
-  host: <TF_POPULATED>
-  portNumber: 3000
-  annotations: 
-    kubernetes.io/ingress.class: <TF_POPULATED>
-    alb.ingress.kubernetes.io/scheme: internet-facing
-    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80},{"HTTPS":443}]'
-    alb.ingress.kubernetes.io/ssl-redirect: "443"
-    external-dns.alpha.kubernetes.io/alias: "true"
+grafana:
+  # This is here because the default value set by the helm chart fails the
+  # probes.
+  livenessProbe: 
+    httpGet:
+      path: /api/health
+      port: 3000
+      httpHeaders:
+        - name: Accept
+          value: application/json
+      # - name: Custom-Header
+      #   value: Awesome
+    initialDelaySeconds: 5
+    periodSeconds: 5
 
-    alb.ingress.kubernetes.io/target-type: ip
-    alb.ingress.kubernetes.io/group.name: nextjs-grpc
-    alb.ingress.kubernetes.io/load-balancer-name: nextjs-grpc
-    alb.ingress.kubernetes.io/security-groups: <TF_POPULATED>
-    external-dns.alpha.kubernetes.io/hostname: <TF_POPULATED>
+  ingress: 
+    enabled: true
+      
+    hosts: 
+      - <TF_POPULATED>
+    annotations: 
+      kubernetes.io/ingress.class: <TF_POPULATED>
+      alb.ingress.kubernetes.io/scheme: internet-facing
+      alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80},{"HTTPS":443}]'
+      alb.ingress.kubernetes.io/ssl-redirect: "443"
+      external-dns.alpha.kubernetes.io/alias: "true"
 
-service:
-  type: <TF_POPULATED>
+      alb.ingress.kubernetes.io/target-type: ip
+      alb.ingress.kubernetes.io/group.name: nextjs-grpc
+      alb.ingress.kubernetes.io/load-balancer-name: nextjs-grpc
+      alb.ingress.kubernetes.io/security-groups: <TF_POPULATED>
+      external-dns.alpha.kubernetes.io/hostname: <TF_POPULATED>
 
-podAnnotations:
-  vault.hashicorp.com/agent-inject: "true"
-  vault.hashicorp.com/agent-pre-populate-only: "true"
-  vault.hashicorp.com/tls-secret: "vault-api-tls-client-ca" 
-  vault.hashicorp.com/agent-configmap: "vault-secrets-grafana" 
-  vault.hashicorp.com/secret-volume-path: /vault
+    # TODO these are probably deprecated to move away from grafana agent,
+    # remove them
+    # ingressClassName: <TF_POPULATED>
+    # host: <TF_POPULATED>
+    # portNumber: 3000
 
-dashboardName: grafana
+  service:
+    type: <TF_POPULATED>
+    port: 3000
+
+  podAnnotations:
+    # TODO These are awaiting integration with vault for password management.
+    # If you aren't using grafana enterprise (or whatever its name was),
+    # grafana doesn't make it easy. Find a way
+    vault.hashicorp.com/agent-inject: "true"
+    vault.hashicorp.com/agent-pre-populate-only: "true"
+    vault.hashicorp.com/tls-secret: "vault-api-tls-client-ca" 
+    vault.hashicorp.com/agent-configmap: "vault-secrets-grafana" 
+    vault.hashicorp.com/secret-volume-path: /vault
+
+# TODO these are probably deprecated to move away from grafana agent,
+# remove them
+# dashboardName: grafana
+
+  extraVolumeMounts:
+    - name: grafana-server-cert
+      mountPath: /etc/secrets/auth_generic_oauth
+      readOnly: true
+
+  extraVolumes:
+    - name: grafana-server-cert
+      secret:
+        secretName: grafana-server-cert
+        optional: false
+        defaultMode: 0440
+
+  # extraLabels:
+  #   cat: mouse
+  #   new-grafana: yes
+
+  annotations:
+    one: two
+    new-grafana: ohyeah
+
+  grafana.ini:
+    log:
+      mode: "console"
+    auth:
+      disable_login_form: "false"
+
+  adminUser: admin
+  adminPassword: admin
+
+  datasources:
+    datasources.yaml:
+      apiVersion: 1
+      datasources:
+        - name: Jaeger
+          type: jaeger
+          access: proxy
+          url: http://jaeger-query.observability:16686
+          isDefault: false
+          jsonData:
+            tracesToLogs:
+              datasourceUid: loki
+              tags:
+                - cluster
+                - hostname
+                - namespace
+                - pod
+          editable: true
+
+        - name: Loki
+          type: loki
+          access: proxy
+          url: http://loki.observability:3100
+          isDefault: false
+          editable: true
+
+        - name: Prometheus
+          type: prometheus
+          access: proxy
+          url: http://prometheus-server.observability
+          isDefault: false
+          jsonData:
+            'tlsSkipVerify': true
+            'timeInterval': "5s"
+          editable: true
+
+    #  - name: Prometheus
+    #    type: prometheus
+    #    url: http://prometheus-prometheus-server
+    #    access: proxy
+    #    isDefault: true
+    #  - name: CloudWatch
+    #    type: cloudwatch
+    #    access: proxy
+    #    uid: cloudwatch
+    #    editable: false
+    #    jsonData:
+    #      authType: default
+    #      defaultRegion: us-east-1
+    #  deleteDatasources: []
+    #  - name: Prometheus
+
+            
+  dashboards:
+    default:
+      kubernetes-cluster: 
+        url: "https://grafana.com/api/dashboards/315/revisions/3/download"
+      node-exporter:
+        url: "https://grafana.com/api/dashboards/1860/revisions/31/download"
+      prometheus-stats:
+        url: "https://grafana.com/api/dashboards/2/revisions/2/download"

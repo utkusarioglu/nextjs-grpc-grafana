@@ -2,7 +2,8 @@ auto_auth = {
   method = {
     type = "kubernetes"
     config = {
-      role = "grafana-deployment"
+      # role = "grafana-deployment"
+      role = "grafana"
     }
   }
 }
